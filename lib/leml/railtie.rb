@@ -1,5 +1,4 @@
 require 'rails'
-require 'pry'
 
 module Leml
   class Railtie < Rails::Engine
