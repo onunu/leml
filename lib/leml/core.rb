@@ -1,4 +1,5 @@
 require 'rails'
+require 'pry'
 
 module Leml
   class Core
@@ -62,6 +63,7 @@ module Leml
     end
 
     def initialize
+      return unless File.exist?(KEY)
       key = File.read(KEY).chop
       @encryptor = ActiveSupport::MessageEncryptor.new(key, cipher: 'aes-256-cbc')
       @secrets = YAML.load_file(SECRETS)
@@ -131,6 +133,7 @@ module Leml
 
     def reload_secrets_file(tmp_file)
       raw_secrets = YAML.load_file(tmp_file)
+      return unless raw_secrets
       File.open(SECRETS, 'w') do |file|
         file.puts encrypt(raw_secrets).to_yaml
       end

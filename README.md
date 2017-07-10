@@ -1,8 +1,7 @@
-# Leml
-Short description and motivation.
-
-## Usage
-How to use my plugin.
+# Leml(Leaf Enrypted YAML)
+Leml encrypt your secrets only leaf.  
+You and member can see only keys without decrypt.  
+It depend on rails.
 
 ## Installation
 Add this line to your application's Gemfile:
@@ -19,6 +18,31 @@ $ bundle
 Or install it yourself as:
 ```bash
 $ gem install leml
+```
+
+## Usage
+```bash
+$ gem install leml
+
+# Initialize your secrets
+$ rake leml:init
+Complete!
+create  config/leml.key
+create  config/leml.yml
+
+Caution Don't forget add key file in gitignore
+
+# Edit your secrets
+# It use environmental variable `EDITOR`, please set your editor.
+$ EDITOR=vim rake leml:edit
+## edit your secrets
+OK, your secrets is encrypted.
+
+# You can also see secrets
+$ rake leml:show
+---
+development:
+  author: onunu
 ```
 
 ## Contributing
