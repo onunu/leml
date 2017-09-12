@@ -2,7 +2,7 @@ require 'rails'
 
 module Leml
   class Core
-    KEY = Rails.root.join('config', 'leml.key')
+    KEY_FILE = Rails.root.join('config', 'leml.key')
     SECRETS = Rails.root.join('config', 'leml.yml')
 
     class << self
@@ -15,8 +15,8 @@ module Leml
       private
 
       def key_initialize
-        confirm_initialize(KEY) if File.exist?(KEY)
-        File.open(KEY, 'w') do |file|
+        confirm_initialize(KEY_FILE) if File.exist?(KEY_FILE)
+        File.open(KEY_FILE, 'w') do |file|
           file.puts(SecureRandom.hex(16))
         end
       end
@@ -62,14 +62,14 @@ module Leml
     end
 
     def initialize
-      return unless File.exist?(KEY)
-      key = File.read(KEY).chop
-      @encryptor = ActiveSupport::MessageEncryptor.new(key, cipher: 'aes-256-cbc')
+      @key = File.exist?(KEY_FILE) ? File.read(KEY_FILE).chop : ENV['LEML_KEY']
+      return if @key.blank?
+      @encryptor = ActiveSupport::MessageEncryptor.new(@key, cipher: 'aes-256-cbc')
       @secrets = YAML.load_file(SECRETS)
     end
 
     def merge_secrets
-      return unless File.exists?(KEY) && File.exists?(SECRETS)
+      return unless @key.present? && File.exists?(SECRETS)
       Rails.application.secrets.merge!(decrypt(@secrets)[Rails.env].deep_symbolize_keys) if @secrets
     end
 
