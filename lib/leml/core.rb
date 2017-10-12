@@ -1,4 +1,5 @@
 require 'rails'
+require 'leml/errors'
 
 module Leml
   class Core
@@ -63,7 +64,7 @@ module Leml
 
     def initialize
       @key = File.exist?(KEY_FILE) ? File.read(KEY_FILE).chop : ENV['LEML_KEY']
-      return if @key.blank?
+      raise NoLemlKeyError if @key.blank?
       @encryptor = ActiveSupport::MessageEncryptor.new(@key, cipher: 'aes-256-cbc')
       @secrets = YAML.load_file(SECRETS)
     end
@@ -74,7 +75,7 @@ module Leml
     end
 
     def edit
-      no_editor if ENV['EDITOR'].blank?
+      raise NoEditorError if ENV['EDITOR'].blank?
       Dir.mktmpdir do |dir|
         tmp_file = create_decrypted_tmp_file(dir)
         system("#{ENV['EDITOR']} #{tmp_file.to_s}")
@@ -110,10 +111,14 @@ module Leml
 
     def encrypt_value(value)
       @encryptor.encrypt_and_sign(value)
+    rescue ActiveSupport::MessageVerifier::InvalidSignature
+      raise InvalidLemlKey
     end
 
     def decrypt_value(value)
       @encryptor.decrypt_and_verify(value)
+    rescue ActiveSupport::MessageVerifier::InvalidSignature
+      raise InvalidLemlKey
     end
 
     def no_editor
