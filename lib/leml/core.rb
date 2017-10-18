@@ -67,10 +67,11 @@ module Leml
       raise NoLemlKeyError if @key.blank?
       @encryptor = ActiveSupport::MessageEncryptor.new(@key, cipher: 'aes-256-cbc')
       @secrets = YAML.load_file(SECRETS)
+      @previous_key_hash = {}
     end
 
     def merge_secrets
-      return unless @key.present? && File.exists?(SECRETS)
+      return unless @key.present? && File.exist?(SECRETS)
       Rails.application.secrets.merge!(decrypt(@secrets)[Rails.env].deep_symbolize_keys) if @secrets
     end
 
@@ -91,32 +92,36 @@ module Leml
 
     private
 
-    def encrypt(raw_secret_hash)
+    def encrypt(raw_secret_hash, key_prefix = '')
       raw_secret_hash.map do |key, value|
+        key_prefix = "#{key_prefix}_#{key}"
         [
           key,
-          value.kind_of?(Hash) ? encrypt(value) : encrypt_value(value)
+          value.kind_of?(Hash) ? encrypt(value, key_prefix) : encrypt_value(value, key_prefix)
         ]
       end.to_h
     end
 
-    def decrypt(secret_hash)
+    def decrypt(secret_hash, key_prefix = '')
       secret_hash.map do |key, value|
+        key_prefix = "#{key_prefix}_#{key}"
         [
           key,
-          value.kind_of?(Hash) ? decrypt(value) : decrypt_value(value)
+          value.kind_of?(Hash) ? decrypt(value, key_prefix) : decrypt_value(value, key_prefix)
         ]
       end.to_h
     end
 
-    def encrypt_value(value)
-      @encryptor.encrypt_and_sign(value)
+    def encrypt_value(value, key_hash)
+      @previous_key_hash.dig(key_hash, :raw) == value ? @previous_key_hash.dig(key_hash, :encrypted) : @encryptor.encrypt_and_sign(value)
     rescue ActiveSupport::MessageVerifier::InvalidSignature
       raise InvalidLemlKey
     end
 
-    def decrypt_value(value)
-      @encryptor.decrypt_and_verify(value)
+    def decrypt_value(value, key_hash)
+      raw_value = @encryptor.decrypt_and_verify(value)
+      @previous_key_hash[key_hash] = {raw: raw_value, encrypted: value}
+      raw_value
     rescue ActiveSupport::MessageVerifier::InvalidSignature
       raise InvalidLemlKey
     end
@@ -129,8 +134,8 @@ module Leml
 
     def create_decrypted_tmp_file(dir)
       file = File.join(dir, 'tmp_leml.yml')
-      File.open(file, 'w') do |file|
-        file.puts(decrypt(@secrets).to_yaml) if @secrets
+      File.open(file, 'w') do |fd|
+        fd.puts(decrypt(@secrets).to_yaml) if @secrets
       end
       file
     end
