@@ -1,6 +1,6 @@
-# Leml(Leaf Enrypted YAML)
-Leml encrypt your secrets only leaf.  
-You and member can see only keys without decrypt.  
+# Leml(Leaf Enrypted YAML) [![Build Status](https://travis-ci.org/onunu/leml.svg?branch=master)](https://travis-ci.org/onunu/leml)
+Leml encrypt your secrets only leaf.
+You and member can see only keys without decrypt.
 It depend on rails.
 
 ## Installation
