@@ -2,10 +2,12 @@ require 'rails/railtie'
 
 module Leml
   class Railtie < Rails::Railtie
-    initializer 'leml.merge_secrets' do
-      config.before_initialize do
-        require 'leml/core'
-        Leml::Core.new.merge_secrets
+    unless ARGV.include? 'leml:init'
+      initializer 'leml.merge_secrets' do
+        config.before_initialize do
+          require 'leml/core'
+          Leml::Core.new.merge_secrets
+        end
       end
     end
 
