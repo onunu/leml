@@ -1,0 +1,8 @@
+language: ruby
+
+rvm:
+  - 2.4.1
+  - 2.3.4
+
+script:
+  - bundle exec rake
