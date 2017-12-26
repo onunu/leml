@@ -7,7 +7,8 @@ class Leml::Test < ActiveSupport::TestCase
     def @leml.secrets
       @secrets
     end
-    def @leml.test_decrypt
+    def @leml.test_decrypt(secrets = nil)
+      @secrets = secrets if secrets
       decrypt(@secrets).to_yaml
     end
     def @leml.test_encrypt(raw_secrets)
@@ -36,5 +37,30 @@ class Leml::Test < ActiveSupport::TestCase
 
     assert_equal @leml.secrets.dig('development', 'author'), re_encrypt.dig('development', 'author')
     assert_not_equal @leml.secrets.dig('development', 'new_value'), re_encrypt.dig('development', 'new_value')
+  end
+
+  test "leml use same values still hash order changed" do
+    test_keys_same = %w(aaa ccc eee fff)
+    test_keys_change = %w(bbb ddd ggg)
+    test_keys = (test_keys_same + test_keys_change).sort
+
+    decrypt = YAML.load(@leml.test_decrypt)
+    decrypt['development']['test_hash'] = {}.tap {|h| test_keys.map {|t| h[t] = t } }
+    @leml.test_decrypt(YAML.load(@leml.test_encrypt(decrypt)))
+
+    test_keys_change.each do |key|
+      decrypt['development']['test_hash'][key] = 'change'
+    end
+    decrypt['development']['test_hash'] = Hash[decrypt['development']['test_hash'].sort.reverse]
+    re_encrypt = YAML.load(@leml.test_encrypt(decrypt))
+
+    assert_equal @leml.secrets.dig('development', 'author'), re_encrypt.dig('development', 'author')
+
+    test_keys_same.each do |key|
+      assert_equal @leml.secrets.dig('development', 'test_hash', key), re_encrypt.dig('development', 'test_hash', key)
+    end
+    test_keys_change.each do |key|
+      assert_not_equal @leml.secrets.dig('development', 'test_hash', key), re_encrypt.dig('development', 'test_hash', key)
+    end
   end
 end

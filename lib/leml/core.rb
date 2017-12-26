@@ -92,22 +92,22 @@ module Leml
 
     private
 
-    def encrypt(raw_secret_hash, key_prefix = '')
+    def encrypt(raw_secret_hash, keys = [])
       raw_secret_hash.map do |key, value|
-        key_prefix = "#{key_prefix}_#{key}"
+        target_keys = keys + [key]
         [
           key,
-          value.kind_of?(Hash) ? encrypt(value, key_prefix) : encrypt_value(value, key_prefix)
+          value.kind_of?(Hash) ? encrypt(value, target_keys) : encrypt_value(value, target_keys.join('_'))
         ]
       end.to_h
     end
 
-    def decrypt(secret_hash, key_prefix = '')
+    def decrypt(secret_hash, keys = [])
       secret_hash.map do |key, value|
-        key_prefix = "#{key_prefix}_#{key}"
+        target_keys = keys + [key]
         [
           key,
-          value.kind_of?(Hash) ? decrypt(value, key_prefix) : decrypt_value(value, key_prefix)
+          value.kind_of?(Hash) ? decrypt(value, target_keys) : decrypt_value(value, target_keys.join('_'))
         ]
       end.to_h
     end
